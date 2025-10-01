@@ -2,6 +2,7 @@ export interface AvatarOptions {
   category: 'funny' | 'cute' | 'cool' | 'anime' | 'default';
   style?: string;
   colors?: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   elements?: Record<string, any>;
   size?: number;
 }
@@ -15,6 +16,30 @@ export interface FunnyAvatarOptions {
   backgroundColor?: string;
 }
 
+export interface PhotoEditOptions {
+  image: HTMLImageElement | string; // Base64 or Image element
+  crop?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    shape?: 'circle' | 'square';
+  };
+  stickers?: Array<{
+    emoji: string;
+    x: number;
+    y: number;
+    size: number;
+    rotation?: number;
+  }>;
+  text?: string;
+  textColor?: string;
+  textPosition?: 'top' | 'bottom';
+  background?: string;
+  backgroundColor?: string;
+  filter?: 'none' | 'grayscale' | 'sepia' | 'vintage' | 'blue' | 'warm';
+}
+
 export interface CuteAvatarOptions {
   animal: 'cat' | 'bear' | 'bunny' | 'panda' | 'fox';
   eyes: string;
@@ -22,6 +47,27 @@ export interface CuteAvatarOptions {
   accessories?: string[];
   backgroundColor?: string;
 }
+
+export interface CoolAvatarOptions {
+  colorScheme: string[];
+  shape: 'circle' | 'square' | 'hexagon' | 'triangle';
+  pattern?: 'none' | 'dots' | 'grid' | 'waves' | 'geometric';
+  gradientType: 'linear' | 'radial' | 'conic';
+  glow?: boolean;
+  text?: string;
+  textColor?: string;
+}
+
+export interface AnimeAvatarOptions {
+  hairStyle: 'short' | 'long' | 'twintails' | 'ponytail' | 'bob';
+  hairColor: string;
+  eyeStyle: 'sparkle' | 'normal' | 'closed' | 'happy';
+  expression: 'smile' | 'neutral' | 'shy' | 'wink';
+  accessories?: string[];
+  backgroundColor?: string;
+  backgroundEffect?: 'stars' | 'sparkles' | 'gradient' | 'none';
+}
+
 
 export class AvatarGenerator {
   private canvas: HTMLCanvasElement;
@@ -78,6 +124,270 @@ export class AvatarGenerator {
     return canvas.toDataURL('image/png');
   }
 
+  async generatePhotoWithStickers(options: PhotoEditOptions): Promise<string> {
+    const { canvas, ctx } = this;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw background
+    if (options.background || options.backgroundColor) {
+      this.drawFunnyBackground(options.background || 'solid', options.backgroundColor || '#ffffff');
+    }
+
+    // Load and draw image
+    let img: HTMLImageElement;
+    if (typeof options.image === 'string') {
+      img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = options.image as string;
+      });
+    } else {
+      img = options.image as HTMLImageElement;
+    }
+
+    // Apply crop if specified
+    if (options.crop) {
+      const { x, y, width, height, shape } = options.crop;
+
+      ctx.save();
+
+      if (shape === 'circle') {
+        // Create circular clipping path
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = Math.min(canvas.width, canvas.height) / 2;
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.clip();
+      }
+
+      // Draw cropped image
+      const scale = Math.max(canvas.width / width, canvas.height / height);
+      const scaledWidth = width * scale;
+      const scaledHeight = height * scale;
+      const offsetX = (canvas.width - scaledWidth) / 2;
+      const offsetY = (canvas.height - scaledHeight) / 2;
+
+      ctx.drawImage(img, x, y, width, height, offsetX, offsetY, scaledWidth, scaledHeight);
+      ctx.restore();
+    } else {
+      // Draw full image
+      const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+      const offsetX = (canvas.width - scaledWidth) / 2;
+      const offsetY = (canvas.height - scaledHeight) / 2;
+
+      ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+    }
+
+    // Apply filter
+    if (options.filter && options.filter !== 'none') {
+      this.applyFilter(options.filter);
+    }
+
+    // Draw stickers
+    if (options.stickers && options.stickers.length > 0) {
+      for (const sticker of options.stickers) {
+        ctx.save();
+
+        // Position and rotate
+        ctx.translate(sticker.x, sticker.y);
+        if (sticker.rotation) {
+          ctx.rotate((sticker.rotation * Math.PI) / 180);
+        }
+
+        // Draw emoji sticker
+        ctx.font = `${sticker.size}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Add shadow for sticker
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+
+        ctx.fillText(sticker.emoji, 0, 0);
+
+        ctx.restore();
+      }
+    }
+
+    // Draw text
+    if (options.text) {
+      const position = options.textPosition || 'bottom';
+      const textY = position === 'top' ? 60 : canvas.height - 40;
+
+      ctx.font = 'bold 32px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = options.textColor || '#ffffff';
+
+      // Add text background
+      const textWidth = ctx.measureText(options.text).width;
+      const padding = 20;
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(
+        (canvas.width - textWidth) / 2 - padding,
+        textY - 25,
+        textWidth + padding * 2,
+        40
+      );
+
+      ctx.fillStyle = options.textColor || '#ffffff';
+      ctx.fillText(options.text, canvas.width / 2, textY);
+    }
+
+    return canvas.toDataURL('image/png');
+  }
+
+  private applyFilter(filter: string) {
+    const { ctx, canvas } = this;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    switch(filter) {
+      case 'grayscale':
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+          data[i] = gray;
+          data[i + 1] = gray;
+          data[i + 2] = gray;
+        }
+        break;
+
+      case 'sepia':
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+
+          data[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189));
+          data[i + 1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168));
+          data[i + 2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131));
+        }
+        break;
+
+      case 'vintage':
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.min(255, data[i] * 1.2);
+          data[i + 1] = Math.min(255, data[i + 1] * 1.1);
+          data[i + 2] = Math.min(255, data[i + 2] * 0.9);
+        }
+        break;
+
+      case 'blue':
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.min(255, data[i] * 0.8);
+          data[i + 1] = Math.min(255, data[i + 1] * 0.9);
+          data[i + 2] = Math.min(255, data[i + 2] * 1.3);
+        }
+        break;
+
+      case 'warm':
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.min(255, data[i] * 1.3);
+          data[i + 1] = Math.min(255, data[i + 1] * 1.1);
+          data[i + 2] = Math.min(255, data[i + 2] * 0.8);
+        }
+        break;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  // Helper function to fix image orientation based on EXIF data
+  async fixImageOrientation(file: File): Promise<string> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        const dataView = new DataView(arrayBuffer);
+
+        // Check for EXIF orientation
+        let orientation = 1;
+        if (dataView.getUint16(0, false) === 0xFFD8) {
+          let offset = 2;
+          while (offset < dataView.byteLength) {
+            if (dataView.getUint16(offset, false) === 0xFFE1) {
+              // Found EXIF marker
+              const exifOffset = offset + 10;
+              if (dataView.getUint32(exifOffset, false) === 0x45786966) {
+                // Found EXIF header
+                const tiffOffset = exifOffset + 6;
+                const littleEndian = dataView.getUint16(tiffOffset, false) === 0x4949;
+                const ifdOffset = dataView.getUint32(tiffOffset + 4, littleEndian) + tiffOffset;
+                const tags = dataView.getUint16(ifdOffset, littleEndian);
+
+                for (let i = 0; i < tags; i++) {
+                  const tagOffset = ifdOffset + 2 + (i * 12);
+                  if (dataView.getUint16(tagOffset, littleEndian) === 0x0112) {
+                    orientation = dataView.getUint16(tagOffset + 8, littleEndian);
+                    break;
+                  }
+                }
+              }
+              break;
+            }
+            offset += 2;
+          }
+        }
+
+        // Create image and rotate based on orientation
+        const img = new Image();
+        img.onload = () => {
+          const tempCanvas = document.createElement('canvas');
+          const tempCtx = tempCanvas.getContext('2d')!;
+
+          if (orientation > 4) {
+            tempCanvas.width = img.height;
+            tempCanvas.height = img.width;
+          } else {
+            tempCanvas.width = img.width;
+            tempCanvas.height = img.height;
+          }
+
+          switch (orientation) {
+            case 2:
+              tempCtx.transform(-1, 0, 0, 1, img.width, 0);
+              break;
+            case 3:
+              tempCtx.transform(-1, 0, 0, -1, img.width, img.height);
+              break;
+            case 4:
+              tempCtx.transform(1, 0, 0, -1, 0, img.height);
+              break;
+            case 5:
+              tempCtx.transform(0, 1, 1, 0, 0, 0);
+              break;
+            case 6:
+              tempCtx.transform(0, 1, -1, 0, img.height, 0);
+              break;
+            case 7:
+              tempCtx.transform(0, -1, -1, 0, img.height, img.width);
+              break;
+            case 8:
+              tempCtx.transform(0, -1, 1, 0, 0, img.width);
+              break;
+          }
+
+          tempCtx.drawImage(img, 0, 0);
+          resolve(tempCanvas.toDataURL('image/jpeg', 0.92));
+        };
+
+        img.src = URL.createObjectURL(file);
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
   generateCute(options: CuteAvatarOptions): string {
     const { canvas, ctx } = this;
 
@@ -93,6 +403,63 @@ export class AvatarGenerator {
     // Draw accessories
     if (options.accessories && options.accessories.length > 0) {
       this.drawCuteAccessories(options.accessories);
+    }
+
+    return canvas.toDataURL('image/png');
+  }
+
+  generateCool(options: CoolAvatarOptions): string {
+    const { canvas, ctx } = this;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw gradient background
+    this.drawCoolGradient(options.colorScheme, options.gradientType);
+
+    // Draw pattern overlay if specified
+    if (options.pattern && options.pattern !== 'none') {
+      this.drawCoolPattern(options.pattern);
+    }
+
+    // Draw main shape
+    this.drawCoolShape(options.shape, options.colorScheme, options.glow);
+
+    // Draw text if provided
+    if (options.text) {
+      this.drawCoolText(options.text, options.textColor || '#ffffff');
+    }
+
+    return canvas.toDataURL('image/png');
+  }
+
+  generateAnime(options: AnimeAvatarOptions): string {
+    const { canvas, ctx } = this;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw background
+    this.drawAnimeBackground(options.backgroundColor || '#fff5f7', options.backgroundEffect || 'none');
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
+    // Draw face
+    this.drawAnimeFace(centerX, centerY);
+
+    // Draw hair
+    this.drawAnimeHair(centerX, centerY, options.hairStyle, options.hairColor);
+
+    // Draw eyes
+    this.drawAnimeEyes(centerX, centerY, options.eyeStyle, options.expression);
+
+    // Draw mouth
+    this.drawAnimeMouth(centerX, centerY, options.expression);
+
+    // Draw accessories
+    if (options.accessories && options.accessories.length > 0) {
+      this.drawAnimeAccessories(centerX, centerY, options.accessories);
     }
 
     return canvas.toDataURL('image/png');
@@ -232,7 +599,7 @@ export class AvatarGenerator {
   }
 
   private drawCuteAnimal(animal: string, eyes: string, cheeks?: boolean) {
-    const { ctx, canvas } = this;
+    const { canvas } = this;
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
 
@@ -637,7 +1004,7 @@ export class AvatarGenerator {
   }
 
   private drawCuteAccessories(accessories: string[]) {
-    const { ctx, canvas } = this;
+    const { canvas } = this;
 
     accessories.forEach(accessory => {
       switch(accessory) {
@@ -773,6 +1140,507 @@ export class AvatarGenerator {
     b = b > 255 ? 255 : b < 0 ? 0 : b;
 
     return (usePound ? '#' : '') + (r << 16 | g << 8 | b).toString(16).padStart(6, '0');
+  }
+
+  private drawCoolGradient(colors: string[], type: 'linear' | 'radial' | 'conic') {
+    const { ctx, canvas } = this;
+    let gradient: CanvasGradient;
+
+    switch(type) {
+      case 'linear':
+        gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        break;
+      case 'radial':
+        gradient = ctx.createRadialGradient(
+          canvas.width / 2, canvas.height / 2, 0,
+          canvas.width / 2, canvas.height / 2, canvas.width / 2
+        );
+        break;
+      case 'conic':
+        gradient = ctx.createConicGradient(0, canvas.width / 2, canvas.height / 2);
+        break;
+    }
+
+    colors.forEach((color, i) => {
+      gradient.addColorStop(i / (colors.length - 1), color);
+    });
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  private drawCoolPattern(pattern: string) {
+    const { ctx, canvas } = this;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 2;
+
+    switch(pattern) {
+      case 'dots':
+        for (let x = 0; x < canvas.width; x += 30) {
+          for (let y = 0; y < canvas.height; y += 30) {
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        break;
+
+      case 'grid':
+        for (let x = 0; x < canvas.width; x += 40) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height);
+          ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += 40) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+        }
+        break;
+
+      case 'waves':
+        ctx.beginPath();
+        for (let y = 0; y < canvas.height; y += 50) {
+          ctx.moveTo(0, y);
+          for (let x = 0; x < canvas.width; x += 10) {
+            ctx.lineTo(x, y + Math.sin(x / 30) * 10);
+          }
+        }
+        ctx.stroke();
+        break;
+
+      case 'geometric':
+        for (let x = 0; x < canvas.width; x += 60) {
+          for (let y = 0; y < canvas.height; y += 60) {
+            ctx.save();
+            ctx.translate(x + 30, y + 30);
+            ctx.rotate(Math.PI / 4);
+            ctx.strokeRect(-15, -15, 30, 30);
+            ctx.restore();
+          }
+        }
+        break;
+    }
+  }
+
+  private drawCoolShape(shape: string, colors: string[], glow?: boolean) {
+    const { ctx, canvas } = this;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const size = Math.min(canvas.width, canvas.height) * 0.5;
+
+    // Apply glow effect
+    if (glow) {
+      ctx.shadowColor = colors[0];
+      ctx.shadowBlur = 40;
+    }
+
+    // Create gradient for shape
+    const gradient = ctx.createLinearGradient(
+      centerX - size / 2, centerY - size / 2,
+      centerX + size / 2, centerY + size / 2
+    );
+    colors.forEach((color, i) => {
+      gradient.addColorStop(i / (colors.length - 1), color);
+    });
+    ctx.fillStyle = gradient;
+
+    switch(shape) {
+      case 'circle':
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case 'square':
+        ctx.fillRect(centerX - size / 2, centerY - size / 2, size, size);
+        break;
+
+      case 'hexagon':
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+          const x = centerX + (size / 2) * Math.cos(angle);
+          const y = centerY + (size / 2) * Math.sin(angle);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case 'triangle':
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - size / 2);
+        ctx.lineTo(centerX - size / 2, centerY + size / 2);
+        ctx.lineTo(centerX + size / 2, centerY + size / 2);
+        ctx.closePath();
+        ctx.fill();
+        break;
+    }
+
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+  }
+
+  private drawCoolText(text: string, color: string) {
+    const { ctx, canvas } = this;
+
+    ctx.font = 'bold 40px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = color;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 10;
+    ctx.fillText(text, canvas.width / 2, canvas.height - 50);
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+  }
+
+  private drawAnimeBackground(color: string, effect: string) {
+    const { ctx, canvas } = this;
+
+    // Base gradient background
+    const gradient = ctx.createRadialGradient(
+      canvas.width / 2, canvas.height / 2, 0,
+      canvas.width / 2, canvas.height / 2, canvas.width / 2
+    );
+    gradient.addColorStop(0, color);
+    gradient.addColorStop(1, this.adjustBrightness(color, -30));
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Add effect
+    switch(effect) {
+      case 'stars':
+        this.drawStars();
+        break;
+      case 'sparkles':
+        for (let i = 0; i < 20; i++) {
+          const x = Math.random() * canvas.width;
+          const y = Math.random() * canvas.height;
+          const size = Math.random() * 3 + 1;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+      case 'gradient':
+        const overlay = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        overlay.addColorStop(0, 'rgba(255, 182, 193, 0.3)');
+        overlay.addColorStop(1, 'rgba(173, 216, 230, 0.3)');
+        ctx.fillStyle = overlay;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        break;
+    }
+  }
+
+  private drawAnimeFace(x: number, y: number) {
+    const { ctx } = this;
+
+    // Face (soft peach color)
+    ctx.fillStyle = '#ffe0bd';
+    ctx.beginPath();
+    ctx.arc(x, y, 80, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Chin shadow for depth
+    ctx.fillStyle = 'rgba(255, 200, 170, 0.3)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 60, 50, 25, 0, 0, Math.PI);
+    ctx.fill();
+  }
+
+  private drawAnimeHair(x: number, y: number, style: string, color: string) {
+    const { ctx } = this;
+    ctx.fillStyle = color;
+
+    switch(style) {
+      case 'short':
+        // Short spiky hair
+        ctx.beginPath();
+        ctx.arc(x, y - 20, 90, Math.PI, 0, true);
+        ctx.fill();
+
+        // Bangs
+        for (let i = 0; i < 5; i++) {
+          const offsetX = (i - 2) * 20;
+          ctx.beginPath();
+          ctx.moveTo(x + offsetX, y - 60);
+          ctx.lineTo(x + offsetX - 10, y - 30);
+          ctx.lineTo(x + offsetX + 10, y - 30);
+          ctx.closePath();
+          ctx.fill();
+        }
+        break;
+
+      case 'long':
+        // Long flowing hair
+        ctx.beginPath();
+        ctx.arc(x, y - 20, 90, Math.PI, 0, true);
+        ctx.fill();
+
+        // Side hair
+        ctx.beginPath();
+        ctx.ellipse(x - 70, y + 20, 25, 80, 0.3, 0, Math.PI * 2);
+        ctx.ellipse(x + 70, y + 20, 25, 80, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bangs
+        ctx.beginPath();
+        ctx.ellipse(x, y - 50, 60, 40, 0, 0, Math.PI);
+        ctx.fill();
+        break;
+
+      case 'twintails':
+        // Top hair
+        ctx.beginPath();
+        ctx.arc(x, y - 20, 85, Math.PI, 0, true);
+        ctx.fill();
+
+        // Twin tails
+        ctx.beginPath();
+        ctx.ellipse(x - 80, y - 40, 30, 60, 0.5, 0, Math.PI * 2);
+        ctx.ellipse(x + 80, y - 40, 30, 60, -0.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Hair ties
+        ctx.fillStyle = '#ff69b4';
+        ctx.beginPath();
+        ctx.arc(x - 70, y - 50, 8, 0, Math.PI * 2);
+        ctx.arc(x + 70, y - 50, 8, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case 'ponytail':
+        // Front hair
+        ctx.beginPath();
+        ctx.arc(x, y - 20, 90, Math.PI, 0, true);
+        ctx.fill();
+
+        // Ponytail
+        ctx.beginPath();
+        ctx.ellipse(x, y - 80, 40, 70, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Hair tie
+        ctx.fillStyle = '#ff69b4';
+        ctx.beginPath();
+        ctx.arc(x, y - 60, 10, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case 'bob':
+        // Bob cut
+        ctx.beginPath();
+        ctx.arc(x, y - 20, 90, Math.PI, 0, true);
+        ctx.fill();
+
+        // Side bob
+        ctx.beginPath();
+        ctx.ellipse(x - 70, y + 10, 30, 50, 0.2, 0, Math.PI * 2);
+        ctx.ellipse(x + 70, y + 10, 30, 50, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+    }
+  }
+
+  private drawAnimeEyes(x: number, y: number, style: string, expression: string) {
+    const { ctx } = this;
+    const leftEyeX = x - 25;
+    const rightEyeX = x + 25;
+    const eyeY = y - 10;
+
+    switch(style) {
+      case 'sparkle':
+        // Large sparkly eyes
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(leftEyeX, eyeY, 15, 0, Math.PI * 2);
+        ctx.arc(rightEyeX, eyeY, 15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White highlights
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(leftEyeX - 5, eyeY - 5, 6, 0, Math.PI * 2);
+        ctx.arc(rightEyeX - 5, eyeY - 5, 6, 0, Math.PI * 2);
+        ctx.arc(leftEyeX + 4, eyeY + 4, 3, 0, Math.PI * 2);
+        ctx.arc(rightEyeX + 4, eyeY + 4, 3, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case 'normal':
+        // Normal anime eyes
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(leftEyeX, eyeY, 12, 0, Math.PI * 2);
+        ctx.arc(rightEyeX, eyeY, 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Highlight
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(leftEyeX - 4, eyeY - 4, 4, 0, Math.PI * 2);
+        ctx.arc(rightEyeX - 4, eyeY - 4, 4, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case 'closed':
+        // Closed eyes (happy lines)
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(leftEyeX, eyeY, 12, 0.2 * Math.PI, 0.8 * Math.PI);
+        ctx.arc(rightEyeX, eyeY, 12, 0.2 * Math.PI, 0.8 * Math.PI);
+        ctx.stroke();
+        break;
+
+      case 'happy':
+        // Happy closed eyes (^_^)
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(leftEyeX - 15, eyeY);
+        ctx.lineTo(leftEyeX, eyeY - 8);
+        ctx.lineTo(leftEyeX + 15, eyeY);
+        ctx.moveTo(rightEyeX - 15, eyeY);
+        ctx.lineTo(rightEyeX, eyeY - 8);
+        ctx.lineTo(rightEyeX + 15, eyeY);
+        ctx.stroke();
+        break;
+    }
+
+    // Wink effect
+    if (expression === 'wink' && style !== 'closed' && style !== 'happy') {
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(rightEyeX, eyeY, 12, 0.2 * Math.PI, 0.8 * Math.PI);
+      ctx.stroke();
+    }
+  }
+
+  private drawAnimeMouth(x: number, y: number, expression: string) {
+    const { ctx } = this;
+    const mouthY = y + 25;
+
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.fillStyle = '#ff8080';
+
+    switch(expression) {
+      case 'smile':
+        // Big smile
+        ctx.beginPath();
+        ctx.arc(x, mouthY, 20, 0.1 * Math.PI, 0.9 * Math.PI);
+        ctx.stroke();
+        break;
+
+      case 'neutral':
+        // Small neutral mouth
+        ctx.beginPath();
+        ctx.arc(x, mouthY, 10, 0, Math.PI);
+        ctx.stroke();
+        break;
+
+      case 'shy':
+        // Small shy smile
+        ctx.beginPath();
+        ctx.arc(x, mouthY, 15, 0.2 * Math.PI, 0.8 * Math.PI);
+        ctx.stroke();
+
+        // Blush marks
+        ctx.fillStyle = 'rgba(255, 150, 150, 0.5)';
+        ctx.beginPath();
+        ctx.arc(x - 50, mouthY - 5, 12, 0, Math.PI * 2);
+        ctx.arc(x + 50, mouthY - 5, 12, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case 'wink':
+        // Playful smile
+        ctx.beginPath();
+        ctx.arc(x, mouthY, 18, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.stroke();
+        break;
+    }
+  }
+
+  private drawAnimeAccessories(x: number, y: number, accessories: string[]) {
+    const { ctx } = this;
+
+    accessories.forEach(accessory => {
+      switch(accessory) {
+        case 'glasses':
+          // Glasses
+          ctx.strokeStyle = '#333';
+          ctx.lineWidth = 3;
+          ctx.fillStyle = 'rgba(200, 230, 255, 0.3)';
+
+          // Left lens
+          ctx.beginPath();
+          ctx.arc(x - 25, y - 10, 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Right lens
+          ctx.beginPath();
+          ctx.arc(x + 25, y - 10, 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Bridge
+          ctx.beginPath();
+          ctx.moveTo(x - 7, y - 10);
+          ctx.lineTo(x + 7, y - 10);
+          ctx.stroke();
+          break;
+
+        case 'bow':
+          // Hair bow
+          ctx.fillStyle = '#ff69b4';
+          ctx.beginPath();
+          // Left loop
+          ctx.arc(x - 15, y - 80, 12, 0, Math.PI * 2);
+          // Right loop
+          ctx.arc(x + 15, y - 80, 12, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Center
+          ctx.fillRect(x - 5, y - 85, 10, 10);
+          break;
+
+        case 'headband':
+          // Headband
+          ctx.strokeStyle = '#ff1493';
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.arc(x, y - 20, 85, Math.PI + 0.3, -0.3);
+          ctx.stroke();
+          break;
+
+        case 'earring':
+          // Earrings
+          ctx.fillStyle = '#ffd700';
+          ctx.beginPath();
+          ctx.arc(x - 70, y + 10, 6, 0, Math.PI * 2);
+          ctx.arc(x + 70, y + 10, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Shine
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(x - 68, y + 8, 2, 0, Math.PI * 2);
+          ctx.arc(x + 72, y + 8, 2, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+      }
+    });
   }
 
   exportAsBlob(format: 'png' | 'jpeg' = 'png', quality: number = 0.92): Promise<Blob> {
