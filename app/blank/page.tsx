@@ -311,7 +311,7 @@ export default function BlankAvatarPage() {
       <nav className="sticky top-0 z-50 backdrop-blur-xl bg-white/70 border-b border-purple-200">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Button variant="ghost" className="text-purple-600 hover:text-purple-700" asChild>
-            <Link href="/">
+            <Link href="/" aria-label="Back to home">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Home
             </Link>

@@ -124,6 +124,15 @@
   }
 }
 
+/* Reduce motion preferences: disable heavy animations/transitions for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Custom animations */
 @keyframes float {
   0%, 100% {

@@ -259,7 +259,7 @@ export default function HomePage() {
               className="bg-gradient-to-r from-purple-500 to-pink-500 text-white transition-all duration-300 hover:shadow-2xl transition-transform duration-300 hover:scale-105 text-lg px-8 py-6 w-full sm:w-auto"
               asChild
             >
-              <Link href="/funny">
+              <Link href="/funny" aria-label="Create a funny avatar now">
                 <Smile className="w-5 h-5 mr-2" />
                 Create Funny Avatar
               </Link>
@@ -269,7 +269,7 @@ export default function HomePage() {
               className="bg-gradient-to-r from-pink-500 to-rose-500 text-white transition-all duration-300 hover:shadow-2xl transition-transform duration-300 hover:scale-105 text-lg px-8 py-6 w-full sm:w-auto"
               asChild
             >
-              <Link href="/cute">
+              <Link href="/cute" aria-label="Make a cute profile picture">
                 <Heart className="w-5 h-5 mr-2" />
                 Make Cute Profile Pic
               </Link>
@@ -375,7 +375,7 @@ export default function HomePage() {
             className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white transition-all hover:shadow-xl"
             asChild
           >
-            <Link href="/funny">
+            <Link href="/funny" aria-label="Open funny avatar generator">
               <Zap className="w-5 h-5 mr-2" />
               Create Your Own Now
             </Link>
@@ -565,7 +565,7 @@ export default function HomePage() {
               className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-lg px-12 py-6 transition-all duration-300 hover:shadow-2xl"
               asChild
             >
-              <Link href="/funny">
+              <Link href="/funny" aria-label="Start creating your avatar now">
                 Start Creating Now
                 <Sparkles className="w-5 h-5 ml-2" />
               </Link>

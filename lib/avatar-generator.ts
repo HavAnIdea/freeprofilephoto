@@ -1660,9 +1660,29 @@ export class AvatarGenerator {
   }
 
   downloadImage(filename: string = 'avatar.png') {
+    const dataUrl = this.canvas.toDataURL('image/png');
+
+    // iOS/Safari fallback: open image in a new tab when download attribute isn't supported
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+
+    if (isIOS || isSafari) {
+      const win = window.open();
+      if (win) {
+        win.document.write(
+          `<iframe src="${dataUrl}" style="border:0;top:0;left:0;bottom:0;right:0;width:100%;height:100%;position:fixed;" allowfullscreen></iframe>`
+        );
+      } else {
+        // Fallback if popup blocked
+        location.href = dataUrl;
+      }
+      return;
+    }
+
     const link = document.createElement('a');
     link.download = filename;
-    link.href = this.canvas.toDataURL();
+    link.href = dataUrl;
     link.click();
   }
 }
