@@ -4,9 +4,11 @@ export const metadata: Metadata = {
   title: "Anime Avatar Maker – Stylized Profile Pictures",
   description:
     "Design anime-inspired avatars with customizable hair, eyes, expressions and backgrounds. 100% free, no watermarks.",
+  alternates: {
+    canonical: "/anime",
+  },
 };
 
 export default function AnimeLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
-
