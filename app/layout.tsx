@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   description:
     "Create funny, cute, cool and anime profile pictures instantly. 100% free, no sign‑up, no watermarks. Works on any device.",
   metadataBase: new URL("https://freeprofilephoto.com"),
+  alternates: {
+    canonical: "/",
+  },
   themeColor: "#8b5cf6",
   viewport: {
     width: "device-width",
@@ -50,6 +53,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3316733072599542"
+          crossOrigin="anonymous"
+        ></script>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
