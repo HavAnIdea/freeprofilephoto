@@ -14,11 +14,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "FreeProfilePhoto – Free Profile Picture Maker (No Watermarks)",
+    default: "Free Profile Photo Generator – Create Profile Pictures",
     template: "%s · FreeProfilePhoto",
   },
   description:
-    "Create funny, cute, cool and anime profile pictures instantly. 100% free, no sign‑up, no watermarks. Works on any device.",
+    "Generate free profile photos instantly for Instagram, TikTok, X, Facebook. Create custom profile pictures online. Free profile photo maker with no sign-up or watermarks.",
   metadataBase: new URL("https://freeprofilephoto.com"),
   alternates: {
     canonical: "/",
@@ -31,17 +31,17 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    title: "FreeProfilePhoto – Free Profile Picture Maker",
+    title: "Free Profile Photo Generator",
     description:
-      "Create funny, cute, cool and anime profile pictures instantly. Free, no watermarks.",
+      "Generate free profile photos for Instagram, TikTok, X, Facebook. Create profile pictures instantly online with no watermarks.",
     url: "https://freeprofilephoto.com",
     siteName: "FreeProfilePhoto",
   },
   twitter: {
     card: "summary_large_image",
-    title: "FreeProfilePhoto – Free Profile Picture Maker",
+    title: "Free Profile Photo Generator",
     description:
-      "Create funny, cute, cool and anime profile pictures instantly. Free, no watermarks.",
+      "Generate free profile photos for Instagram, TikTok, X, Facebook. Create profile pictures instantly online with no watermarks.",
     creator: "@FreeProfilePhoto",
   },
 };
